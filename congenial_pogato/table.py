@@ -1,4 +1,4 @@
-
+import pandas as pd
 
 class Table(object):
 
@@ -13,19 +13,39 @@ class Table(object):
 
     @property
     def columns(self):
-        pass
+        if not hasattr(self,'columns_'):
+            cmd = f""" SELECT data_type,column_name FROM information_schema.columns 
+                        WHERE table_name = {self.name}
+            """
+            self.columns_ = pd.DataFrame(self.db.execute(cmd),columns=['data_type','column_name'])
+            self.columns_.index = self.columns_.column_name
+            self.data_types_ = self.columns['data_type']
+            self.columns_ = self.columns['column_name']
+        return self.columns_
+
+    @property
+    def dtypes(self):
+        if not hasattr(self,'columns_'):
+            cmd = f""" SELECT data_type,column_name FROM information_schema.columns 
+                        WHERE table_name = {self.name}
+            """
+            self.columns_ = pd.DataFrame(self.db.execute(cmd),columns=['data_type','column_name'])
+            self.columns_.index = self.columns_.column_name
+            self.data_types_ = self.columns['data_type']
+            self.columns_ = self.columns['column_name']
+        return self.data_types_
 
     @property
     def conf(self):
         pass
 
-    def replace_records(self,data,args=[]):
+    def write(self,data,args=[]):
         pass
 
-    def delete_records(self,args=[]):
+    def delete(self,args=[]):
         pass
 
-    def grab_records(self,args=[]):
+    def grab(self,args=[]):
         pass
 
     def execute(self,query_str):
