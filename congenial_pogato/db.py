@@ -83,14 +83,15 @@ class DB(object):
     def __getattr__(self,attr):
         if self.is_table(attr):
             if not attr in self.cache['table']:
-                self.cache['table'][attr] = Table(attr,self, bound=True)
+                self.cache['table'][attr] = Table(attr,self)
             return self.cache['table'][attr]
         elif self.is_schema(attr):
             if not attr in self.cache['schema']:
-                self.cache['schema'][attr] = Schema(attr,self, bound=True)
+                self.cache['schema'][attr] = Schema(attr,self)
             return self.cache['schema'][attr]
         else:
-            self.cache['table'][attr] = Table(attr, self, bound=False)
+            self.cache['table'][attr] = Table(attr, self)
+            return self.cache['table'][attr]
 
 
 
