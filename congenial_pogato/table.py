@@ -2,6 +2,22 @@ import pandas as pd
 from .util import *
 from .command_templates import *
 
+def check_exists(func):
+
+    def wrap(cls,*args,**kwargs):
+        if not cls.bound:
+            if ('data' in kwargs):
+                data = kwargs['data']
+            elif isinstance(args[0],pd.DataFrame):
+                data = args[0]
+            else:
+                raise ValueError(f'Table {cls.name} does not exist, \
+                        it must be created before it can be operated upon')
+            cls.create_from_df(data,cls.schema)
+        return func(cls,*args,**kwargs)
+
+    return wrap
+
 class Table(object):
 
     def __init__(self,name,db,schema=None):
@@ -51,17 +67,20 @@ class Table(object):
         self.db.execute(cmd)
         self.db.tree.loc[self.schema].append(self.name)
 
+    @check_exists
     def write(self,data,args=[],kwargs={},overwrite=False):
         if overwrite:
             self.delete(args,kwargs)
         df = self.rectify(data)
         self.db.insert(df,self.schema,self.name)
 
+    @check_exists
     def update(self,data,args=[],kwargs={}):
         df = self.rectify(data)
         #todo: find the fastest and most elegant way to do this
         pass
 
+    @check_exists
     def delete(self,args=[],kwargs={}):
         where = parse_arg_statement(args, kwargs)
         if where:
@@ -70,6 +89,7 @@ class Table(object):
             cmd = delete_cmd.format(schema_name=self.schema, table_name=self.name)
         self.db.execute(cmd)
 
+    @check_exists
     def grab(self,args=[],kwargs={}):
         where = parse_arg_statement(args, kwargs)
         if where:
