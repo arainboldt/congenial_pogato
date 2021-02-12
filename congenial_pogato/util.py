@@ -18,3 +18,6 @@ def swiss_typist(df,pydtypes):
 
 def parse_arg_statement(args=[],kwargs={}):
     pass
+
+def gen_pg_conf():
+    pass

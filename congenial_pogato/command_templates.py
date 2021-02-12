@@ -1,0 +1,5 @@
+create_table_cmd = """"""
+delete_where_cmd = """"""
+delete_cmd = """"""
+select_where_cmd = """"""
+select_cmd = """"""
