@@ -2,6 +2,7 @@ import psycopg2 as pg
 import pandas as pd
 from .schema import Schema
 from .table import Table
+from io import StringIO
 
 class DB(object):
     status_dict = {1: 'STATUS_READY', 2: 'STATUS_BEGIN', 5: 'STATUS_PREPARED'}
@@ -62,6 +63,22 @@ class DB(object):
             cur.rollback()
         cur.close()
         return res
+
+    def insert(self,df,schema,table):
+        conn = self.conn
+        cur = conn.cursor()
+        output = StringIO()
+        df.to_csv(output, sep='\t', header=False, index=False)
+        cols = df.columns.tolist()
+        output.seek(0)
+        try:
+            cur.copy_from(output, f'{schema}.{table}', null="", columns=cols)
+            conn.commit()
+        except Exception as e:
+            cur.rollback()
+            print(e)
+        cur.close()
+        return
 
     def __getattr__(self,attr):
         if self.is_table(attr):

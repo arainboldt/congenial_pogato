@@ -1,12 +1,20 @@
-def __getattr__(self, attr):
-    if not hasattr(self, attr):
-        print(f'Name {attr} not present in {self.name}')
-        return
-    return self.__dict__[attr]
 
 
-def __getattribute__(self, attr):
-    if not hasattr(self, attr):
-        print(f'Name {attr} not present in {self.name}')
-        return
-    return self.__dict__[attr]
+py_col_dtypes = {
+    'text':'str',
+    'timestamp without time zone':'datetime',
+    'timestamp with time zone':'tz_datetime',
+    'integer':'int',
+    'numeric':'float',
+    'boolean':'bool',
+    'character':'str',
+    'date':'date',
+    'bigint':'float',
+    'json':'dict',
+}
+
+def swiss_typist(df,pydtypes):
+    pass
+
+def parse_arg_statement(args=[],kwargs={}):
+    pass
