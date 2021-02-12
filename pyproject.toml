@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "congenial_pogato"
+version = "0.0.1a"
+description = "Convenience wrapper psycopg"
+authors = ["Andrew Rainboldt <arainboldt@protonmail.com>"]
+license = "Martian Law"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+psycopg2-binary = "^2.8.6"
+pandas = "^1.2.2"
+
+[tool.poetry.dev-dependencies]
+jupyter = "^1.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
