@@ -50,6 +50,11 @@ class Table(object):
         df = self.rectify(data)
         self.db.insert(df,self.schema,self.name)
 
+    def update(self,data,args=[],kwargs={}):
+        df = self.rectify(data)
+        #todo: find the fastest and most elegant way to do this
+        pass
+
     def delete(self,args=[],kwargs={}):
         where = parse_arg_statement(args, kwargs)
         if where:
