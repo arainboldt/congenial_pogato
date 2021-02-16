@@ -4,6 +4,41 @@ from .schema import Schema
 from .table import Table
 from io import StringIO
 
+def check_poll_status(conn):
+    """
+    extensions.POLL_OK == 0
+    extensions.POLL_READ == 1
+    extensions.POLL_WRITE == 2
+    """
+
+    if conn.poll() == pg.extensions.POLL_OK:
+        print ("POLL: POLL_OK")
+    if conn.poll() == pg.extensions.POLL_READ:
+        print ("POLL: POLL_READ")
+    if conn.poll() == pg.extensions.POLL_WRITE:
+        print ("POLL: POLL_WRITE")
+    return conn.poll()
+
+def get_transaction_status(conn):
+
+    # print the connection status
+    print ("\nconn.status:", conn.status)
+
+    # evaluate the status for the PostgreSQL connection
+    if conn.status == pg.extensions.STATUS_READY:
+        print ("psycopg2 status #1: Connection is ready for a transaction.")
+
+    elif conn.status == pg.extensions.STATUS_BEGIN:
+        print ("psycopg2 status #2: An open transaction is in process.")
+
+    elif conn.status == pg.extensions.STATUS_IN_TRANSACTION:
+        print ("psycopg2 status #3: An exception has occured.")
+        print ("Use tpc_commit() or tpc_rollback() to end transaction")
+
+    elif conn.status == pg.extensions.STATUS_PREPARED:
+        print ("psycopg2 status #4:A transcation is in the 2nd phase of the process.")
+    return conn.status
+
 class DB(object):
     status_dict = {1: 'STATUS_READY', 2: 'STATUS_BEGIN', 5: 'STATUS_PREPARED'}
 
@@ -21,18 +56,23 @@ class DB(object):
 
     @property
     def conn(self):
+        if self.conn_.status == pg.extensions.STATUS_IN_TRANSACTION:
+            self.conn_.rollback()
+        if (self.conn_.closed == 1):
+            self.conn_ = pg.connect(dbname=self.dbname, user=self.user, host=self.host, port=self.port,
+                                    password=self.password)
         return self.conn_
 
     def _map(self):
         cmd = """SELECT table_schema, table_name FROM information_schema.tables
                     WHERE table_schema not in ('information_schema','pg_catalog')
         """
-        self.schema_tables = pd.DataFrame(self.execute(cmd), columns=['schema', 'table'])
+        self.schema_tables = pd.DataFrame(self.execute(cmd,output=True), columns=['schema', 'table'])
         self.tree = pd.Series({schema: group.table.tolist() \
                                for schema, group in self.schema_tables.groupby('schema')})
 
     def get_schema(self,table_name):
-        schema_check = self.tree.astype(str).str.contains(table_name,regex=True)
+        schema_check = self.tree.astype(str).str.contains(f"'{table_name}'",regex=True)
         if schema_check.any():
             return schema_check.idxmax()
         return None
@@ -41,7 +81,7 @@ class DB(object):
         return name in self.tree
 
     def is_table(self,name):
-        return self.tree.astype(str).str.contains(name,regex=True).any()
+        return self.tree.astype(str).str.contains(f"'{name}'",regex=True).any()
 
     def exists(self,name):
         if self.is_table(name):
@@ -50,17 +90,19 @@ class DB(object):
             return True
         return False
 
-    def execute(self,cmd):
+    def execute(self,cmd,output=False):
         conn = self.conn
         cur = conn.cursor()
+        res = None
         try:
             cur.execute(cmd)
             conn.commit()
-            res = cur.fetchall()
+            if output:
+                res = cur.fetchall()
         except Exception as e:
+            print('PG Execution Error')
             print(e)
-            res = None
-            cur.rollback()
+            conn.rollback()
         cur.close()
         return res
 
@@ -75,7 +117,7 @@ class DB(object):
             cur.copy_from(output, f'{schema}.{table}', null="", columns=cols)
             conn.commit()
         except Exception as e:
-            cur.rollback()
+            conn.rollback()
             print(e)
         cur.close()
         return
@@ -92,6 +134,8 @@ class DB(object):
         else:
             self.cache['table'][attr] = Table(attr, self)
             return self.cache['table'][attr]
+
+
 
 
 

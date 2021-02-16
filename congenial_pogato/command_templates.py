@@ -1,5 +1,16 @@
-create_table_cmd = """"""
-delete_where_cmd = """"""
-delete_cmd = """"""
-select_where_cmd = """"""
-select_cmd = """"""
+create_table_cmd = """
+
+    CREATE TABLE {schema_name}.{table_name}({table_conf})
+
+"""
+delete_cmd = """
+
+    DELETE FROM {schema_name}.{table_name} {where}
+
+"""
+
+select_cmd = """
+
+    SELECT * FROM {schema_name}.{table_name} {where}
+
+"""

@@ -1,24 +1,51 @@
+import pandas as pd
+import datetime as dt
 
-
+def iterable(val):
+    try:
+        iter(val)
+        return True
+    except:
+        return False
 
 def datetime_like(val):
     if isinstance(val,(pd.Timestamp,dt.datetime,dt.date)):
-        return val
+        return True
     else:
         try:
-            return pd.to_datetime(val,infer_datetime_format=True)
+            pd.to_datetime(val, infer_datetime_format=True)
+            return True
         except:
-            return val
+            return False
+
+def listlike(val):
+    if isinstance(val,str):
+        return False
+    elif iterable(val):
+        return True
 
 def dtyper(dtype):
-    if dtype in ['date','datetime','timestamp']:
+    if 'list' in dtype:
+        sub_typer = dtyper(dtype.replace('list',''))
+        return type_lister(sub_typer)
+    elif dtype in ['date','datetime','timestamp']:
         return datetimer
     elif 'int' in dtype:
         return int
     elif 'str' in dtype:
-        return str
+        return tostr
     elif 'float' in dtype:
         return float
+    elif 'bool' in dtype:
+        return bool
+
+def tostr(val):
+    return f"'{val}'"
+
+def type_lister(typer):
+    def typecast(val):
+        return [typer(v) for v in val]
+    return typecast
 
 def datetimer(val):
     try:
@@ -27,20 +54,75 @@ def datetimer(val):
     except:
         return f"'{val}'::date"
 
+def rel_code(rel_val):
+    if isinstance(rel_val,(int,float)):
+        rel_val = int(rel_val)
+        if rel_val == 0:
+            return '='
+        elif rel_val == 1:
+            return '>'
+        elif rel_val == 10:
+            return '>='
+        elif rel_val == -1:
+            return '<'
+        elif rel_val == -10:
+            return '<='
+        elif rel_val == 2:
+            return 'IN'
+        elif rel_val == 3:
+            return 'LIKE'
+        elif rel_val == 31:
+            return 'ILIKE'
+    if isinstance(rel_val,str):
+        rel_val = rel_val.strip().lower()
+        if 'eq' in rel_val:
+            return '='
+        elif 'gt' in rel_val:
+            return '>'
+        elif 'gte' in rel_val:
+            return '>='
+        elif 'lt' in rel_val:
+            return '<'
+        elif 'lte' in rel_val:
+            return '<='
+        elif 'in' in rel_val:
+            return 'IN'
+        elif 'like' in rel_val:
+            return 'LIKE'
+        elif 'ilike' in rel_val:
+            return 'ILIKE'
+
+def get_type(val):
+    if datetime_like(val):
+        return 'date'
+    elif isinstance(val,float):
+        return 'float'
+    elif isinstance(val,int):
+        return 'int'
+    elif isinstance(val,str):
+        return 'str'
+    elif isinstance(val,bool):
+        return 'bool'
+
 class Where(object):
 
-    def __init__(self,args=None,**kwargs):
-        if isinstance(args,list):
-            self.args = args
-        elif isinstance(args,dict):
-            self.args = [args]
+    def __init__(self,*args,**kwargs):
+        self.valid_cols = kwargs.pop('valid_cols',[])
+        self.args = args
         self.kwargs = kwargs
 
+
     def __str__(self):
-        arg_statement = self.parse_args(self.args)
-        if len(self.kwargs) > 0:
-            arg_statement += f'& {self.parse_arg_dict(self.kwargs)}'
-        return f""" WHERE {arg_statement} """
+        arg_statement = []
+        if (len(self.args) > 0) or (len(self.kwargs) > 0):
+            if (len(self.args) > 0):
+                arg_statement.append(self.parse_args(self.args))
+            if len(self.kwargs) > 0:
+                arg_statement.append(self.parse_arg_dict(self.kwargs))
+            if len(arg_statement) > 0:
+                arg_statement = ' AND '.join(arg_statement)
+                return f""" WHERE {arg_statement} """
+        return ''
 
     def parse_args(self,arg):
         if isinstance(arg,dict):
@@ -52,20 +134,30 @@ class Where(object):
         arg_statement = []
         for k,v in arg_dict.items():
             col, rel, typer_func = self.parse_k(k)
+            if not col in self.valid_cols:
+                print(col)
+                continue
+            if typer_func is None:
+                typer_func = dtyper(get_type(v))
             arg_statement.append(f"{col} {rel} {typer_func(v)}")
-        return ' & '.join(arg_statement)
+        return ' AND '.join(arg_statement)
 
     def parse_arg_list(self,arg_list):
         arg_statement = []
         for arg in arg_list:
-            arg_component = ''
-            if isinstance(datetime_like(arg[2]),pd.Timestamp):
-                v = dtyper('datetime')(arg[2])
+            if not arg[0] in self.valid_cols:
+                print(arg[0])
+                continue
+            if listlike(arg[2]):
+                subtyper = dtyper(get_type(arg[2][0]))
+                v = f""" ( {type_lister(subtyper)(v)} )"""
             else:
-                v = arg[2]
+                typer = dtyper(get_type(arg[2]))
+                v = typer(arg[2])
             arg_component = f""" {arg[0]} {rel_code(arg[1])} {v}"""
-            arg_statement.append( arg_component )
-        return ' & '.join(arg_statement)
+            if len(arg_component) > 0:
+                arg_statement.append( arg_component )
+        return ' AND '.join(arg_statement)
 
     def parse_k(self,k):
         k_split = k.split('__',-1)
