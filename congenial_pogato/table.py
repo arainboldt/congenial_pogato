@@ -1,6 +1,7 @@
 import pandas as pd
 from .util import *
 from .command_templates import *
+from .parse import *
 
 def check_exists(func):
 
@@ -82,7 +83,7 @@ class Table(object):
 
     @check_exists
     def delete(self,args=[],kwargs={}):
-        where = parse_arg_statement(args, kwargs)
+        where = Where(args, **kwargs)
         if where:
             cmd = delete_where_cmd.format(schema_name=self.schema,table_name=self.name,where=where)
         else:
@@ -91,7 +92,7 @@ class Table(object):
 
     @check_exists
     def grab(self,args=[],kwargs={}):
-        where = parse_arg_statement(args, kwargs)
+        where = Where(args, **kwargs)
         if where:
             cmd = select_where_cmd.format(schema_name=self.schema,table_name=self.name,where=where)
         else:
