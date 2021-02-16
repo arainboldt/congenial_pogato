@@ -40,7 +40,7 @@ class Where(object):
         arg_statement = self.parse_args(self.args)
         if len(self.kwargs) > 0:
             arg_statement += f'& {self.parse_arg_dict(self.kwargs)}'
-        return arg_statement
+        return f""" WHERE {arg_statement} """
 
     def parse_args(self,arg):
         if isinstance(arg,dict):
