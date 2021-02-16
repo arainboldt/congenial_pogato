@@ -1,6 +1,8 @@
 import pandas as pd
 import datetime as dt
 
+beginning_of_time = dt.datetime(1979,1,1)
+
 def iterable(val):
     try:
         iter(val)
@@ -13,8 +15,8 @@ def datetime_like(val):
         return True
     else:
         try:
-            pd.to_datetime(val, infer_datetime_format=True)
-            return True
+            datish = pd.to_datetime(val, infer_datetime_format=True)
+            return datish > beginning_of_time
         except:
             return False
 
@@ -28,7 +30,7 @@ def dtyper(dtype):
     if 'list' in dtype:
         sub_typer = dtyper(dtype.replace('list',''))
         return type_lister(sub_typer)
-    elif dtype in ['date','datetime','timestamp']:
+    elif any(date_name in dtype for date_name in ['date','datetime','timestamp']):
         return datetimer
     elif 'int' in dtype:
         return int
@@ -44,15 +46,15 @@ def tostr(val):
 
 def type_lister(typer):
     def typecast(val):
-        return [typer(v) for v in val]
+        return '(' + ', '.join([typer(v) for v in val]) + ')'
     return typecast
 
 def datetimer(val):
     try:
-        date_val = pd.to_datetime(val, infer_datetime_format=True)
-        return f"'{date_val}'::date"
+        date_val = pd.to_datetime(val, infer_datetime_format=True).strftime('%Y-%m-%d')
+        return f"'{date_val}'" + '::date'
     except:
-        return f"'{val}'::date"
+        return f"'{date_val}'" + '::date'
 
 def rel_code(rel_val):
     if isinstance(rel_val,(int,float)):
@@ -93,12 +95,15 @@ def rel_code(rel_val):
             return 'ILIKE'
 
 def get_type(val):
-    if datetime_like(val):
-        return 'date'
+    if listlike(val):
+        subtype = get_type(val[0])
+        return f'list-{subtype}'
     elif isinstance(val,float):
         return 'float'
     elif isinstance(val,int):
         return 'int'
+    elif datetime_like(val):
+        return 'date'
     elif isinstance(val,str):
         return 'str'
     elif isinstance(val,bool):
@@ -133,13 +138,12 @@ class Where(object):
     def parse_arg_dict(self,arg_dict):
         arg_statement = []
         for k,v in arg_dict.items():
-            col, rel, typer_func = self.parse_k(k)
+            col, rel = self.parse_k(k)
             if not col in self.valid_cols:
                 print(col)
                 continue
-            if typer_func is None:
-                typer_func = dtyper(get_type(v))
-            arg_statement.append(f"{col} {rel} {typer_func(v)}")
+            typer_func = dtyper(get_type(v))
+            arg_statement.append(f"{col} {rel} " + typer_func(v))
         return ' AND '.join(arg_statement)
 
     def parse_arg_list(self,arg_list):
@@ -150,23 +154,21 @@ class Where(object):
                 continue
             if listlike(arg[2]):
                 subtyper = dtyper(get_type(arg[2][0]))
-                v = f""" ( {type_lister(subtyper)(v)} )"""
+                v = type_lister(subtyper)(v)
             else:
                 typer = dtyper(get_type(arg[2]))
                 v = typer(arg[2])
-            arg_component = f""" {arg[0]} {rel_code(arg[1])} {v}"""
+            arg_component = f"{arg[0]} {rel_code(arg[1])} " + v
             if len(arg_component) > 0:
                 arg_statement.append( arg_component )
         return ' AND '.join(arg_statement)
 
     def parse_k(self,k):
-        k_split = k.split('__',-1)
-        if len(k_split) == 3:
-            return k_split[0], rel_code(k_split[1]), dtyper(k_split[2])
-        elif len(k_split) == 2:
-            return k_split[0], rel_code(k_split[1]), None
+        k_split = k.split('__',-1)[:2]
+        if len(k_split) == 2:
+            return k_split[0], rel_code(k_split[1])
         elif len(k_split) == 1:
-            return k_split[0], '=', None
+            return k_split[0], '='
         else:
             raise(f'Query argument {k} has too many components, max components is 3: col_name, relation, dtype')
 

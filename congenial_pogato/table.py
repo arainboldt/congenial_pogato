@@ -113,7 +113,8 @@ class Table(object):
         data = self.db.execute(cmd,output=True)
         return self.rectify( pd.DataFrame(data,columns=self.columns) )
 
-    def _purge(self):
+    def purge(self):
+
         pass
 
     def rectify(self,data):
