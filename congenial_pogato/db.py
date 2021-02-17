@@ -4,6 +4,14 @@ from .schema import Schema
 from .table import Table
 from io import StringIO
 
+def try_poll(conn):
+    try:
+        conn.poll()
+        return True
+    except:
+        return False
+
+
 def check_poll_status(conn):
     """
     extensions.POLL_OK == 0
@@ -58,7 +66,7 @@ class DB(object):
     def conn(self):
         if self.conn_.status == pg.extensions.STATUS_IN_TRANSACTION:
             self.conn_.rollback()
-        if (self.conn_.closed == 1):
+        if not try_poll(self.conn_):
             self.conn_ = pg.connect(dbname=self.dbname, user=self.user, host=self.host, port=self.port,
                                     password=self.password)
         return self.conn_
