@@ -170,7 +170,7 @@ class Where(object):
         elif len(k_split) == 1:
             return k_split[0], '='
         else:
-            raise(f'Query argument {k} has too many components, max components is 3: col_name, relation, dtype')
+            raise(f'Query argument {k} has too many components, max components is 2: col_name, relation, dtype')
 
 
 

@@ -1,4 +1,3 @@
-import pandas as pd
 from .util import *
 from .command_templates import *
 from .parse import *
@@ -70,7 +69,8 @@ class Table(object):
 
     @property
     def conf(self):
-        pass
+        #todo
+        return 'No Conf'
 
     @property
     def bound(self):
@@ -114,7 +114,7 @@ class Table(object):
         return self.rectify( pd.DataFrame(data,columns=self.columns) )
 
     def purge(self):
-
+        #todo
         pass
 
     def rectify(self,data):

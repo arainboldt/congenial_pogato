@@ -14,6 +14,7 @@ py_col_dtypes = {
 }
 
 pg_col_dtypes = {
+    
     'str':'text',
     'object':'text',
     'datetime[ns]':'timestamp without time zone',
