@@ -14,3 +14,9 @@ select_cmd = """
     SELECT * FROM {schema_name}.{table_name} {where}
 
 """
+
+drop_table_cmd = """
+
+    DROP TABLE {schema_name}.{table_name}
+
+"""

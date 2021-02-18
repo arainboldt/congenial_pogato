@@ -102,23 +102,24 @@ class Table(object):
 
     @check_exists
     def delete(self,*args, **kwargs):
-        where = Where(valid_cols=self.columns,*args, **kwargs)
+        where = Where(valid_cols=self.columns, *args, **kwargs)
         cmd = delete_cmd.format(schema_name=self.schema,table_name=self.name,where=where)
         self.db.execute(cmd)
 
     @check_exists
     def grab(self,*args,**kwargs):
-        where = Where(valid_cols=self.columns,*args, **kwargs)
+        where = Where(valid_cols=self.columns, *args, **kwargs)
         cmd = select_cmd.format(schema_name=self.schema, table_name=self.name, where=where)
         data = self.db.execute(cmd,output=True)
         return self.rectify( pd.DataFrame(data,columns=self.columns) )
 
     def purge(self):
-        #todo
-        pass
+        cmd = drop_table_cmd.format(schema_name=self.schema, table_name=self.name)
+        self.db.execute(cmd,output=False)
 
     def rectify(self,data):
-        df = swiss_typist(data,self.py_dtypes)
+        assert (self.columns.index.intersection(data.columns) / self.columns.shape[0]) == 1
+        df = swiss_typist(data[self.columns],self.py_dtypes)
         return df
 
 
