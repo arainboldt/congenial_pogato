@@ -118,7 +118,7 @@ class Table(object):
         self.db.execute(cmd,output=False)
 
     def rectify(self,data):
-        assert (self.columns.index.intersection(data.columns).shape[0] / self.columns.shape[0]) == 1
+        assert set(self.columns.tolist()).issubset(data.columns.tolist())
         df = swiss_typist(data[self.columns],self.py_dtypes)
         return df
 
