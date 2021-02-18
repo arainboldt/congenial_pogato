@@ -113,13 +113,56 @@ class Table(object):
         data = self.db.execute(cmd,output=True)
         return self.rectify( pd.DataFrame(data,columns=self.columns) )
 
+    @check_exists
+    def grab_col(self,col_name,index_name,*args,**kwargs):
+        where = Where(valid_cols=self.columns, *args, **kwargs)
+        cols = f'{index_name}, {col_name}'
+        cmd = select_subset_cmd.format(schema_name=self.schema,
+                                       table_name=self.name,
+                                       cols=cols,
+                                       where=where)
+        data = self.db.execute(cmd,output=True)
+        return self.rectify( pd.DataFrame(data,columns=self.columns), validate=False ).set_index(index_name)
+
+    @check_exists
+    def unique(self,col_name,*args,**kwargs):
+        where = Where(valid_cols=self.columns, *args, **kwargs)
+        cmd = select_distinct_from_col_cmd.format(schema_name=self.schema,
+                                                  table_name=self.name,
+                                                  col_name=col_name,
+                                                  where=where)
+        data = self.db.execute(cmd,output=True)
+        return swiss_typist(pd.Series(data),self.py_dtypes[col_name])
+
+    @check_exists
+    def min(self,col_name,*args,**kwargs):
+        where = Where(valid_cols=self.columns, *args, **kwargs)
+        cmd = select_min_from_col_cmd.format(schema_name=self.schema,
+                                                  table_name=self.name,
+                                                  col_name=col_name,
+                                                  where=where)
+        data = self.db.execute(cmd,output=True)
+        return swiss_typist(pd.Series(data),self.py_dtypes[col_name])
+
+    @check_exists
+    def max(self,col_name,*args,**kwargs):
+        where = Where(valid_cols=self.columns, *args, **kwargs)
+        cmd = select_max_from_col_cmd.format(schema_name=self.schema,
+                                                  table_name=self.name,
+                                                  col_name=col_name,
+                                                  where=where)
+        data = self.db.execute(cmd,output=True)
+        return swiss_typist(pd.Series(data),self.py_dtypes[col_name])
+
     def purge(self):
         cmd = drop_table_cmd.format(schema_name=self.schema, table_name=self.name)
         self.db.execute(cmd,output=False)
 
-    def rectify(self,data):
-        assert set(self.columns.tolist()).issubset(data.columns.tolist())
-        df = swiss_typist(data[self.columns],self.py_dtypes)
+    def rectify(self,data,validate=False):
+        if validate:
+            assert set(self.columns.tolist()).issubset(data.columns.tolist())
+        cols = data.columns.intersection(self.columns)
+        df = swiss_typist(data[cols],self.py_dtypes.loc[cols])
         return df
 
 
