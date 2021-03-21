@@ -15,7 +15,7 @@ def check_exists(func):
             else:
                 raise ValueError(f'Table {cls.name} does not exist, \
                         it must be created before it can be operated upon')
-            schema = kwargs['schema']
+            schema = kwargs.pop('schema',None)
             cls.create_from_df(data,schema)
         return func(cls,*args,**kwargs)
 
@@ -88,20 +88,22 @@ class Table(object):
         self.db.tree.loc[self.schema].append(self.name)
 
     @check_exists
-    def write(self,data,schema=None,overwrite=False,*args,**kwargs):
+    def write(self, data, schema=None, overwrite=False, *args, **kwargs):
         if overwrite:
-            self.delete(args,kwargs)
+            self.delete(*args,**kwargs)
         df = self.rectify(data)
         self.db.insert(df,self.schema,self.name)
 
     @check_exists
-    def update(self,data,args=[],kwargs={}):
+    def update(self, data, args=[],kwargs={}):
         df = self.rectify(data)
         #todo: find the fastest and most elegant way to do this
         pass
 
     @check_exists
-    def delete(self,*args, **kwargs):
+    def delete(self, *args, **kwargs):
+        kwargs.pop('overwrite', None)
+        kwargs.pop('schema', None)
         where = Where(valid_cols=self.columns, *args, **kwargs)
         cmd = delete_cmd.format(schema_name=self.schema,table_name=self.name,where=where)
         self.db.execute(cmd)
@@ -112,6 +114,18 @@ class Table(object):
         cmd = select_cmd.format(schema_name=self.schema, table_name=self.name, where=where)
         data = self.db.execute(cmd,output=True)
         return self.rectify( pd.DataFrame(data,columns=self.columns) )
+
+    @check_exists
+    def grab_cols(self,col_names,index_name,*args,**kwargs):
+        where = Where(valid_cols=self.columns, *args, **kwargs)
+        cols = ', '.join(col_names + [index_name])
+        cmd = select_subset_cmd.format(schema_name=self.schema,
+                                       table_name=self.name,
+                                       cols=cols,
+                                       where=where)
+        data = self.db.execute(cmd,output=True)
+        return self.rectify( pd.DataFrame(data,columns=self.columns), validate=False ).set_index(index_name)
+
 
     @check_exists
     def grab_col(self,col_name,index_name,*args,**kwargs):

@@ -140,7 +140,7 @@ class Where(object):
         for k,v in arg_dict.items():
             col, rel = self.parse_k(k)
             if not col in self.valid_cols:
-                print(col)
+                print(f'Dropping invalid column {col}')
                 continue
             typer_func = dtyper(get_type(v))
             arg_statement.append(f"{col} {rel} " + typer_func(v))
