@@ -44,3 +44,18 @@ drop_table_cmd = """
     DROP TABLE {schema_name}.{table_name}
 
 """
+
+val_exists_cmd = """
+
+    SELECT exists (SELECT 1 FROM {schema_name}.{table_name} WHERE {col_name} = '{val}' LIMIT 1)
+
+"""
+
+old_school_insert = """
+        INSERT INTO {schema_name}.{table_name} ({columns})
+        VALUES
+            {values}
+"""
+
+
+

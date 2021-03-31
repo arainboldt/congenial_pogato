@@ -1,8 +1,17 @@
 from .util import *
 from .command_templates import *
 from .parse import *
+from .encoder import *
 
 pgtyper = PGTypeDict()
+
+def get_manual_insert_command(schema_name, table_name, columns, values):
+    values_str = ','.join([str(rec) for rec in values])
+    cols = ', '.join(columns)
+    return old_school_insert.format(schema_name=schema_name,
+                                    table_name=table_name,
+                                    columns=cols,
+                                    values=values_str)
 
 def check_exists(func):
 
@@ -92,6 +101,14 @@ class Table(object):
         if overwrite:
             self.delete(*args,**kwargs)
         df = self.rectify(data)
+        if (self.dtypes == 'bytea').any():
+            #df = byte_encode_df(df, self.dtypes)
+            cmd = get_manual_insert_command(schema_name=self.schema,
+                                           table_name=self.name,
+                                           columns=self.columns.tolist(),
+                                           values=df[self.columns].to_records())
+            self.db.execute(cmd)
+            return
         self.db.insert(df,self.schema,self.name)
 
     @check_exists
@@ -105,8 +122,10 @@ class Table(object):
         kwargs.pop('overwrite', None)
         kwargs.pop('schema', None)
         where = Where(valid_cols=self.columns, *args, **kwargs)
-        cmd = delete_cmd.format(schema_name=self.schema,table_name=self.name,where=where)
-        self.db.execute(cmd)
+        where = str(where)
+        if len(where) > 0:
+            cmd = delete_cmd.format(schema_name=self.schema,table_name=self.name,where=where)
+            self.db.execute(cmd)
 
     @check_exists
     def grab(self,*args,**kwargs):
@@ -136,7 +155,10 @@ class Table(object):
                                        cols=cols,
                                        where=where)
         data = self.db.execute(cmd,output=True)
-        return self.rectify( pd.DataFrame(data,columns=self.columns), validate=False ).set_index(index_name)
+        data = self.rectify( pd.DataFrame(data,columns=[index_name,col_name]), validate=False )
+        data.index = data[index_name].iloc[:,0].copy()
+        data.index.name = 'index'
+        return data
 
     @check_exists
     def unique(self,col_name,*args,**kwargs):
@@ -149,6 +171,15 @@ class Table(object):
         return swiss_typist(pd.Series(data),self.py_dtypes[col_name])
 
     @check_exists
+    def val_exists(self,col_name,val):
+        cmd = val_exists_cmd.format(schema_name=self.schema,
+                                    table_name=self.name,
+                                    col_name=col_name,
+                                    val=val)
+        exists = self.db.execute(cmd, output=True)
+        return exists[0][0]
+
+    @check_exists
     def min(self,col_name,*args,**kwargs):
         where = Where(valid_cols=self.columns, *args, **kwargs)
         cmd = select_min_from_col_cmd.format(schema_name=self.schema,
@@ -156,7 +187,7 @@ class Table(object):
                                                   col_name=col_name,
                                                   where=where)
         data = self.db.execute(cmd,output=True)
-        return swiss_typist(pd.Series(data),self.py_dtypes[col_name])
+        return data[0][0]
 
     @check_exists
     def max(self,col_name,*args,**kwargs):
@@ -166,7 +197,7 @@ class Table(object):
                                                   col_name=col_name,
                                                   where=where)
         data = self.db.execute(cmd,output=True)
-        return swiss_typist(pd.Series(data),self.py_dtypes[col_name])
+        return data[0][0]
 
     def purge(self):
         cmd = drop_table_cmd.format(schema_name=self.schema, table_name=self.name)

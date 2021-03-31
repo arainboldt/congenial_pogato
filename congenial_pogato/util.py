@@ -11,6 +11,7 @@ py_col_dtypes = {
     'date':'date',
     'json':'dict',
     'bigint':'int',
+    'bytea':'bytes'
 }
 
 pg_col_dtypes = {
@@ -23,6 +24,7 @@ pg_col_dtypes = {
     'bool':'boolean',
     'date':'date',
     'dict':'json',
+
 
 }
 
@@ -52,8 +54,11 @@ class PGTypeDict(dict):
 
 def swiss_typist(df,pydtypes):
     for col, dtype in pydtypes.iteritems():
-        if 'date' in dtype:
-            df[col] = pd.to_datetime(df[col],infer_datetime_format=True)
-        else:
-            df[col] = df[col].astype(dtype)
+        try:
+            if 'date' in dtype:
+                df[col] = pd.to_datetime(df[col],infer_datetime_format=True)
+            else:
+                df[col] = df[col].astype(dtype)
+        except:
+            pass
     return df

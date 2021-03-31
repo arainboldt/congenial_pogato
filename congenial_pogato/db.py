@@ -110,6 +110,7 @@ class DB(object):
         except Exception as e:
             print('PG Execution Error')
             print(e)
+            print(cmd)
             conn.rollback()
         cur.close()
         return res

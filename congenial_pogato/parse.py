@@ -3,6 +3,8 @@ import datetime as dt
 
 beginning_of_time = dt.datetime(1979,1,1)
 
+
+
 def iterable(val):
     try:
         iter(val)
@@ -27,7 +29,9 @@ def listlike(val):
         return True
 
 def dtyper(dtype):
-    if 'list' in dtype:
+    if 'null' in dtype:
+        return None
+    elif 'list' in dtype:
         sub_typer = dtyper(dtype.replace('list',''))
         return type_lister(sub_typer)
     elif any(date_name in dtype for date_name in ['date','datetime','timestamp']):
@@ -40,6 +44,14 @@ def dtyper(dtype):
         return float
     elif 'bool' in dtype:
         return bool
+    elif 'bytes' in dtype:
+        return bytearr
+
+def null_pass(val):
+    return None
+
+def bytearr(val):
+    return f"'{val}'::bytea"
 
 def tostr(val):
     return f"'{val}'"
@@ -96,6 +108,8 @@ def rel_code(rel_val):
 
 def get_type(val):
     if listlike(val):
+        if len(val) == 0:
+            return 'list-null'
         subtype = get_type(val[0])
         return f'list-{subtype}'
     elif isinstance(val,float):
@@ -108,6 +122,8 @@ def get_type(val):
         return 'str'
     elif isinstance(val,bool):
         return 'bool'
+    elif isinstance(val,bytes):
+        return 'bytes'
 
 class Where(object):
 
@@ -121,9 +137,13 @@ class Where(object):
         arg_statement = []
         if (len(self.args) > 0) or (len(self.kwargs) > 0):
             if (len(self.args) > 0):
-                arg_statement.append(self.parse_args(self.args))
+                arg_str = self.parse_args(self.args)
+                if arg_str:
+                    arg_statement.append( arg_str )
             if len(self.kwargs) > 0:
-                arg_statement.append(self.parse_arg_dict(self.kwargs))
+                kwarg_str = self.parse_arg_dict(self.kwargs)
+                if kwarg_str:
+                    arg_statement.append( kwarg_str )
             if len(arg_statement) > 0:
                 arg_statement = ' AND '.join(arg_statement)
                 return f""" WHERE {arg_statement} """
@@ -143,8 +163,11 @@ class Where(object):
                 print(f'Dropping invalid column {col}')
                 continue
             typer_func = dtyper(get_type(v))
-            arg_statement.append(f"{col} {rel} " + typer_func(v))
-        return ' AND '.join(arg_statement)
+            if typer_func:
+                arg_statement.append( f"{col} {rel} " + str(typer_func(v)) )
+        if len(arg_statement) > 0:
+            return ' AND '.join(arg_statement)
+        return None
 
     def parse_arg_list(self,arg_list):
         arg_statement = []
@@ -161,7 +184,9 @@ class Where(object):
             arg_component = f"{arg[0]} {rel_code(arg[1])} " + v
             if len(arg_component) > 0:
                 arg_statement.append( arg_component )
-        return ' AND '.join(arg_statement)
+        if len(arg_statement) > 0:
+            return ' AND '.join(arg_statement)
+        return None
 
     def parse_k(self,k):
         k_split = k.split('__',-1)[:2]
