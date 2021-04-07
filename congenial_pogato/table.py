@@ -3,6 +3,10 @@ from .command_templates import *
 from .parse import *
 from .encoder import *
 
+
+#todo: Table.get_val ; rectify/typify on Table.write
+
+
 pgtyper = PGTypeDict()
 
 def get_manual_insert_command(schema_name, table_name, columns, values):
@@ -146,7 +150,7 @@ class Table(object):
         return self.rectify( pd.DataFrame(data,columns=self.columns), validate=False ).set_index(index_name)
 
 
-    @check_exists
+    @check_exists # todo: fix this func
     def grab_col(self,col_name,index_name,*args,**kwargs):
         where = Where(valid_cols=self.columns, *args, **kwargs)
         cols = f'{index_name}, {col_name}'
