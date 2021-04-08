@@ -12,42 +12,6 @@ def try_poll(conn):
     except:
         return False
 
-
-def check_poll_status(conn):
-    """
-    extensions.POLL_OK == 0
-    extensions.POLL_READ == 1
-    extensions.POLL_WRITE == 2
-    """
-
-    if conn.poll() == pg.extensions.POLL_OK:
-        print ("POLL: POLL_OK")
-    if conn.poll() == pg.extensions.POLL_READ:
-        print ("POLL: POLL_READ")
-    if conn.poll() == pg.extensions.POLL_WRITE:
-        print ("POLL: POLL_WRITE")
-    return conn.poll()
-
-def get_transaction_status(conn):
-
-    # print the connection status
-    print ("\nconn.status:", conn.status)
-
-    # evaluate the status for the PostgreSQL connection
-    if conn.status == pg.extensions.STATUS_READY:
-        print ("psycopg2 status #1: Connection is ready for a transaction.")
-
-    elif conn.status == pg.extensions.STATUS_BEGIN:
-        print ("psycopg2 status #2: An open transaction is in process.")
-
-    elif conn.status == pg.extensions.STATUS_IN_TRANSACTION:
-        print ("psycopg2 status #3: An exception has occured.")
-        print ("Use tpc_commit() or tpc_rollback() to end transaction")
-
-    elif conn.status == pg.extensions.STATUS_PREPARED:
-        print ("psycopg2 status #4:A transcation is in the 2nd phase of the process.")
-    return conn.status
-
 def check_con(max_retry=3):
     def decorator(func):
         @wraps(func)
@@ -61,8 +25,6 @@ def check_con(max_retry=3):
             raise e
         return wrapper
     return decorator
-
-
 
 class DB(object):
     status_dict = {1: 'STATUS_READY', 2: 'STATUS_BEGIN', 5: 'STATUS_PREPARED'}
