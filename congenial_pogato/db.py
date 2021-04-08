@@ -3,6 +3,7 @@ import pandas as pd
 from .schema import Schema
 from .table import Table
 from io import StringIO
+from functools import wraps
 
 def try_poll(conn):
     try:
@@ -46,6 +47,22 @@ def get_transaction_status(conn):
     elif conn.status == pg.extensions.STATUS_PREPARED:
         print ("psycopg2 status #4:A transcation is in the 2nd phase of the process.")
     return conn.status
+
+def check_con(max_retry=3):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self,*args,**kwargs):
+            for _ in range(max_retry):
+                try:
+                    resp = func(self,*args,**kwargs)
+                    return resp
+                except pg.errors.ConnectionException as e:
+                    print(e)
+            raise e
+        return wrapper
+    return decorator
+
+
 
 class DB(object):
     status_dict = {1: 'STATUS_READY', 2: 'STATUS_BEGIN', 5: 'STATUS_PREPARED'}
@@ -98,6 +115,7 @@ class DB(object):
             return True
         return False
 
+    @check_con(max_retry=3)
     def execute(self,cmd,output=False):
         conn = self.conn
         cur = conn.cursor()
@@ -115,6 +133,7 @@ class DB(object):
         cur.close()
         return res
 
+    @check_con(max_retry=3)
     def insert(self,df,schema,table):
         conn = self.conn
         cur = conn.cursor()

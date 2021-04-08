@@ -51,11 +51,11 @@ def swiss_typist(df,pydtypes):
     for col, dtype in pydtypes.iteritems():
         try:
             if 'date' in dtype:
-                df[col] = pd.to_datetime(df[col],infer_datetime_format=True)
+                df.loc[:,col] = pd.to_datetime(df[col],infer_datetime_format=True)
             elif 'int' in dtype:
-                df[col] = df[col].astype(float).astype(dtype)
+                df.loc[:,col] = df[col].astype(float).astype(dtype)
             else:
-                df[col] = df[col].astype(dtype)
+                df.loc[:,col] = df[col].astype(dtype)
         except:
             pass
     return df
