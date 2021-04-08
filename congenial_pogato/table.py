@@ -127,9 +127,8 @@ class Table(object):
         kwargs.pop('schema', None)
         where = Where(valid_cols=self.columns, *args, **kwargs)
         where = str(where)
-        if len(where) > 0:
-            cmd = delete_cmd.format(schema_name=self.schema,table_name=self.name,where=where)
-            self.db.execute(cmd)
+        cmd = delete_cmd.format(schema_name=self.schema,table_name=self.name,where=where)
+        self.db.execute(cmd)
 
     @check_exists
     def grab(self,*args,**kwargs):
