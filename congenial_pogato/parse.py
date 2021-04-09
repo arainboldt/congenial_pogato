@@ -114,14 +114,14 @@ def get_type(val):
         return f'list-{subtype}'
     elif isinstance(val,float):
         return 'float'
+    elif isinstance(val,bool):
+        return 'bool'
     elif isinstance(val,int):
         return 'int'
     elif datetime_like(val):
         return 'date'
     elif isinstance(val,str):
         return 'str'
-    elif isinstance(val,bool):
-        return 'bool'
     elif isinstance(val,bytes):
         return 'bytes'
 
@@ -164,6 +164,7 @@ class Where(object):
                 continue
             typer_func = dtyper(get_type(v))
             if typer_func:
+                print(typer_func,v,typer_func(v))
                 arg_statement.append( f"{col} {rel} " + str(typer_func(v)) )
         if len(arg_statement) > 0:
             return ' AND '.join(arg_statement)
