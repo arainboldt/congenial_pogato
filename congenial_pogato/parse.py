@@ -164,7 +164,6 @@ class Where(object):
                 continue
             typer_func = dtyper(get_type(v))
             if typer_func:
-                print(typer_func,v,typer_func(v))
                 arg_statement.append( f"{col} {rel} " + str(typer_func(v)) )
         if len(arg_statement) > 0:
             return ' AND '.join(arg_statement)
