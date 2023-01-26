@@ -128,7 +128,7 @@ class Table(object):
         #db.tree.loc[table_def.schema].append(table_def.name)
 
     @check_exists
-    def write(self, data, schema=None, overwrite=False, *args, **kwargs):
+    def write(self, data, schema=None, overwrite=False, display_cmd=False, *args, **kwargs):
         if overwrite:
             self.delete(*args,**kwargs)
         df = self.rectify(data)
@@ -138,6 +138,8 @@ class Table(object):
                                            table_name=self.name,
                                            columns=self.columns.tolist(),
                                            values=df[self.columns].to_records())
+            if display_cmd:
+                print(cmd)
             self.db.execute(cmd)
             return
         self.db.insert(df,self.schema,self.name)

@@ -48,7 +48,7 @@ class PGTypeDict(dict):
                     return self._dict_[true_key]
 
 def swiss_typist(df,pydtypes):
-    for col, dtype in pydtypes.iteritems():
+    for col, dtype in pydtypes.items():
         try:
             if 'date' in dtype:
                 df.loc[:,col] = pd.to_datetime(df[col],infer_datetime_format=True)
