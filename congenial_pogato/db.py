@@ -29,7 +29,7 @@ def check_con(max_retry=3):
 class DB(object):
     status_dict = {1: 'STATUS_READY', 2: 'STATUS_BEGIN', 5: 'STATUS_PREPARED'}
 
-    def __init__(self,dbname=None, user=None, password=None, host=None, port=None):
+    def __init__(self, dbname=None, user=None, password=None, host=None, port=None):
         self.dbname = dbname
         self.name = dbname
         self.user = user
