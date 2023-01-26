@@ -45,7 +45,7 @@ def check_exists(func):
     return wrap
 
 def gen_pg_conf(df):
-    table_conf = ', '.join([f' {col} {pgtyper[str(series.dtype)]}' for col,series in df.iteritems()])
+    table_conf = ', '.join([f' {col} {pgtyper[str(series.dtype)]}' for col,series in df.items()])
     return table_conf
 
 
