@@ -26,19 +26,24 @@ def check_con(max_retry=3):
         return wrapper
     return decorator
 
-class DB(object):
-    status_dict = {1: 'STATUS_READY', 2: 'STATUS_BEGIN', 5: 'STATUS_PREPARED'}
+            'sslmode' : 'require',
+        'sslrootcert' : os.environ.get('CA_FILE_PATH')
 
-    def __init__(self, dbname=None, user=None, password=None, host=None, port=None):
+class DB(object):
+    status_dict = {1: 'STATUS_READY', 2: 'STATUS_BEGIN', 5: 'STATUS_PREPARED', }
+
+    def __init__(self, dbname=None, user=None, password=None, host=None, port=None, sslmode=None, sslrootcert=None):
         self.dbname = dbname
         self.name = dbname
         self.user = user
         self.password = password
         self.host = host
         self.port = port
+        self.sslmode = sslmode
+        self.sslrootcert = sslrootcert
         self.cache = {'table':{},'schema':{}}
         self.conn_ = pg.connect(dbname=self.dbname, user=self.user, host=self.host, port=self.port,
-                                password=self.password)
+                                password=self.password, sslmode=self.sslmode, sslrootcert=self.sslrootcert)
         self._map()
 
     @property
