@@ -6,6 +6,16 @@ from .encoder import *
 
 #todo: Table.get_val ; rectify/typify on Table.write
 
+from dataclasses import dataclass
+from typing import List, Dict
+
+@dataclass
+class TableDef:
+    schema: str
+    name: str
+    columns: List[str]
+    pydtypes: Dict
+
 
 pgtyper = PGTypeDict()
 
@@ -37,6 +47,14 @@ def check_exists(func):
 def gen_pg_conf(df):
     table_conf = ', '.join([f' {col} {pgtyper[str(series.dtype)]}' for col,series in df.iteritems()])
     return table_conf
+
+
+
+def gen_pg_conf_from_table_def(table_def):
+    table_conf = ', '.join([f' {col} {pgtyper[str(dtype)]}' for col,dtype in table_def.pydtypes.items()])
+    return table_conf
+  
+
 
 class Table(object):
 
@@ -99,6 +117,13 @@ class Table(object):
         self.schema_ = schema_name
         self.db.execute(cmd)
         self.db.tree.loc[self.schema].append(self.name)
+
+    @staticmethod
+    def create_from_def(table_def, db):
+        conf = gen_pg_conf_from_table_def(table_def=table_def)
+        cmd = create_table_cmd.format(schema_name=table_def.schema,table_name=table_def.name,table_conf=conf)
+        db.execute(cmd)
+        db.tree.loc[table_def.schema].append(table_def.name)
 
     @check_exists
     def write(self, data, schema=None, overwrite=False, *args, **kwargs):

@@ -50,6 +50,13 @@ class DB(object):
                                     password=self.password)
         return self.conn_
 
+    def close(self):
+        """ close connection nicely :) """
+        try:
+            self.conn_.close()
+        except Exception as e:
+            print(e)
+
     def _map(self):
         cmd = """SELECT table_schema, table_name FROM information_schema.tables
                     WHERE table_schema not in ('information_schema','pg_catalog')
