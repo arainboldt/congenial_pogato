@@ -116,14 +116,16 @@ class Table(object):
         cmd = create_table_cmd.format(schema_name=schema_name,table_name=self.name,table_conf=conf)
         self.schema_ = schema_name
         self.db.execute(cmd)
-        self.db.tree.loc[self.schema].append(self.name)
+        self.db._map()
+        #self.db.tree.loc[self.schema].append(self.name)
 
     @staticmethod
     def create_from_def(table_def, db):
         conf = gen_pg_conf_from_table_def(table_def=table_def)
         cmd = create_table_cmd.format(schema_name=table_def.schema,table_name=table_def.name,table_conf=conf)
         db.execute(cmd)
-        db.tree.loc[table_def.schema].append(table_def.name)
+        db._map()
+        #db.tree.loc[table_def.schema].append(table_def.name)
 
     @check_exists
     def write(self, data, schema=None, overwrite=False, *args, **kwargs):
