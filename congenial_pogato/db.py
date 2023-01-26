@@ -26,9 +26,6 @@ def check_con(max_retry=3):
         return wrapper
     return decorator
 
-            'sslmode' : 'require',
-        'sslrootcert' : os.environ.get('CA_FILE_PATH')
-
 class DB(object):
     status_dict = {1: 'STATUS_READY', 2: 'STATUS_BEGIN', 5: 'STATUS_PREPARED', }
 
