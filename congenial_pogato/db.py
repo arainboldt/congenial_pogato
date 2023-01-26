@@ -113,7 +113,8 @@ class DB(object):
         cols = df.columns.tolist()
         output.seek(0)
         try:
-            cur.copy_from(output, f'{schema}.{table}', null="", columns=cols)
+            cur.execute(f'SET search_path TO {schema}, public')
+            cur.copy_from(output, table, null="", columns=cols)
             conn.commit()
         except Exception as e:
             conn.rollback()
