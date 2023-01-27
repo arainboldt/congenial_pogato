@@ -128,7 +128,7 @@ class Table(object):
         #db.tree.loc[table_def.schema].append(table_def.name)
 
     @check_exists
-    def write(self, data, schema=None, overwrite=False, display_cmd=False, *args, **kwargs):
+    def write(self, data, schema=None, overwrite=False, *args, **kwargs):
         if overwrite:
             self.delete(*args,**kwargs)
         df = self.rectify(data)
@@ -138,8 +138,6 @@ class Table(object):
                                            table_name=self.name,
                                            columns=self.columns.tolist(),
                                            values=df[self.columns].to_records())
-            if display_cmd:
-                print(cmd)
             self.db.execute(cmd)
             return
         self.db.insert(df,self.schema,self.name)
@@ -209,7 +207,9 @@ class Table(object):
                                     col_name=col_name,
                                     val=val)
         exists = self.db.execute(cmd, output=True)
-        return exists[0][0]
+        if exists:
+            return exists[0][0]
+        return None
 
     @check_exists
     def min(self,col_name,*args,**kwargs):
@@ -219,7 +219,9 @@ class Table(object):
                                                   col_name=col_name,
                                                   where=where)
         data = self.db.execute(cmd,output=True)
-        return data[0][0]
+        if data:
+            return data[0][0]
+        return None
 
     @check_exists
     def max(self,col_name,*args,**kwargs):
@@ -229,7 +231,9 @@ class Table(object):
                                                   col_name=col_name,
                                                   where=where)
         data = self.db.execute(cmd,output=True)
-        return data[0][0]
+        if data:
+            return data[0][0]
+        return None
 
     def purge(self):
         cmd = drop_table_cmd.format(schema_name=self.schema, table_name=self.name)
