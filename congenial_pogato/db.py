@@ -28,8 +28,19 @@ def check_con(max_retry=3):
 
 class DB(object):
     status_dict = {1: 'STATUS_READY', 2: 'STATUS_BEGIN', 5: 'STATUS_PREPARED', }
+    special_attrs = ['tree', 'schema_tables', 'table_column_map']
 
-    def __init__(self, dbname=None, user=None, password=None, host=None, port=None, sslmode=None, sslrootcert=None):
+    def __init__(self, 
+                dbname=None, 
+                user=None, 
+                password=None, 
+                host=None, 
+                port=None, 
+                sslmode=None, 
+                sslrootcert=None,
+                db_uri=None,
+                application_name=None
+        ):
         self.dbname = dbname
         self.name = dbname
         self.user = user
@@ -38,8 +49,13 @@ class DB(object):
         self.port = port
         self.sslmode = sslmode
         self.sslrootcert = sslrootcert
+        self.db_uri = db_uri
+        self.application_name = application_name
         self.cache = {'table':{},'schema':{}}
-        self.conn_ = pg.connect(dbname=self.dbname, user=self.user, host=self.host, port=self.port,
+        if all([x is not None for x in [self.db_uri, self.application_name]]):
+            self.conn_ = pg.connect(self.db_uri, application_name=self.application_name)
+        else:
+            self.conn_ = pg.connect(dbname=self.dbname, user=self.user, host=self.host, port=self.port,
                                 password=self.password, sslmode=self.sslmode, sslrootcert=self.sslrootcert)
         self._map()
 
@@ -48,8 +64,11 @@ class DB(object):
         if self.conn_.status == pg.extensions.STATUS_IN_TRANSACTION:
             self.conn_.rollback()
         if not try_poll(self.conn_):
-            self.conn_ = pg.connect(dbname=self.dbname, user=self.user, host=self.host, port=self.port,
-                                    password=self.password)
+            if all([x is not None for x in [self.db_uri, self.application_name]]):
+                self.conn_ = pg.connect(self.db_uri, application_name=self.application_name)
+            else:
+                self.conn_ = pg.connect(dbname=self.dbname, user=self.user, host=self.host, port=self.port,
+                                    password=self.password, sslmode=self.sslmode, sslrootcert=self.sslrootcert)
         return self.conn_
 
     def close(self):
@@ -66,6 +85,24 @@ class DB(object):
         self.schema_tables = pd.DataFrame(self.execute(cmd,output=True), columns=['schema', 'table'])
         self.tree = pd.Series({schema: group.table.tolist() \
                                for schema, group in self.schema_tables.groupby('schema')})
+        return self
+
+    @property
+    def column_map(self):
+        if not hasattr(self, 'table_column_map'):
+            self._map_columns()
+        return self.table_column_map
+    
+    def _map_columns(self):
+        cmd_fmt = """SELECT table_schema as schema, table_name, column_name, data_type as pg_dtype
+                    FROM information_schema.columns
+                    WHERE table_schema in {schemas}
+                    AND table_name in {tables};"""        
+        tables_tuple = '(' + ','.join([f"'{tbl}'" for tbl in self.schema_tables.table.unique()]) + ')'
+        schemas_tuple = '(' + ','.join([f"'{sch}'" for sch in self.schema_tables.schema.unique()]) + ')'
+        cmd = cmd_fmt.format(schemas=schemas_tuple, tables=tables_tuple)
+        self.table_column_map = pd.DataFrame(self.execute(cmd, output=True), columns=['table_schema', 'table_name', 'column_name', 'pg_dtype'])
+        return self
 
     def get_schema(self,table_name):
         schema_check = self.tree.astype(str).str.contains(f"'{table_name}'",regex=True)
@@ -123,6 +160,8 @@ class DB(object):
         return
 
     def __getattr__(self,attr):
+        if attr in self.special_attrs:
+            return self.__dict__.get(attr)
         if self.is_table(attr):
             if not attr in self.cache['table']:
                 self.cache['table'][attr] = Table(attr,self)

@@ -15,6 +15,16 @@ class TableDef:
     name: str
     columns: List[str]
     pydtypes: Dict
+    primary_key: str=None
+    foreign_key: str=None
+
+@dataclass
+class AbstractTableDef:
+    schema: str
+    name: str
+    columns: List[str]
+    pydtypes: Dict
+    variables: List[str]
 
 
 pgtyper = PGTypeDict()
@@ -120,6 +130,11 @@ class Table(object):
         #self.db.tree.loc[self.schema].append(self.name)
 
     @staticmethod
+    def create_cmd_from_def(table_def):
+        conf = gen_pg_conf_from_table_def(table_def=table_def)
+        return create_table_cmd.format(schema_name=table_def.schema,table_name=table_def.name,table_conf=conf)
+
+    @staticmethod
     def create_from_def(table_def, db):
         conf = gen_pg_conf_from_table_def(table_def=table_def)
         cmd = create_table_cmd.format(schema_name=table_def.schema,table_name=table_def.name,table_conf=conf)
@@ -173,7 +188,8 @@ class Table(object):
                                        cols=cols,
                                        where=where)
         data = self.db.execute(cmd,output=True)
-        return self.rectify( pd.DataFrame(data,columns=self.columns), validate=False ).set_index(index_name)
+        cols = self.columns.intersection(pd.Index(col_names))
+        return self.rectify( pd.DataFrame(data,columns=cols), validate=False ).set_index(index_name)
 
 
     @check_exists # todo: fix this func
